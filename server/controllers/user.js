@@ -7,8 +7,6 @@ const client = require("../connection");
 // Function to add a user
 exports.addUser = async (req, res) => {
 
-  console.log('req in controller', req);
-
   try {
     const { first_name, last_name, email, phone_number, address, status, password, profile_image_base64, role } = req.body;
 

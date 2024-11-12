@@ -7,4 +7,4 @@ Live preview of the website you can access : [muscle-dynamic-gym-dashboard previ
 
 \
 This website is just a front-end, no back-end. An example of Admin (Dashboard) Page.\
-Made with React & Bootstrap as framework.
+Made with React & Bootstrap as framework

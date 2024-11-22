@@ -27,7 +27,13 @@ const RootQuery = new GraphQLObjectType({
   fields: {
     users: {
       type: new GraphQLList(UserType),
-      resolve: userResolver.Query.users,
+      resolve(parent, args) {
+        try {
+          return User.findAll();
+        } catch (error) {
+          throw new Error('Error fetching users: ' + error.message);
+        }
+      },
     },
     user: {
       type: UserType,

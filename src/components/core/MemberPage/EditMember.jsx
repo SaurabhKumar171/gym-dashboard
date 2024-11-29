@@ -1,31 +1,31 @@
 import React from 'react';
 
 const EditMember = ({ member, onClose }) => (
-  <div className="p-6 bg-white rounded-lg shadow-lg w-full max-w-md mx-auto">
+  <div className="p-6 bg-dark1 text-white rounded-lg w-full">
     <h2 className="text-2xl font-semibold text-center mb-6">Edit Member</h2>
     <form className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700">Name:</label>
+        <label className="block text-sm font-medium">Name:</label>
         <input
           type="text"
           defaultValue={member.name}
-          className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="mt-1 block w-full px-1 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-dark1"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700">Address:</label>
+        <label className="block text-sm font-medium">Address:</label>
         <input
           type="text"
           defaultValue={member.address}
-          className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="mt-1 block w-full px-1 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-dark1"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700">Phone:</label>
+        <label className="block text-sm font-medium">Phone:</label>
         <input
           type="text"
-          defaultValue={member.phone}
-          className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          defaultValue={member.mobile}
+          className="mt-1 block w-full px-1 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-dark1"
         />
       </div>
       <div className="flex justify-between gap-4">

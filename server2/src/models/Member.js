@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
+const { Subscription } = require("./Subscriptions")
 
 const Member = sequelize.define('Member', {
   id: {
@@ -37,8 +38,12 @@ const Member = sequelize.define('Member', {
     allowNull: false,
   },
   subscription_id: {
-    type: DataTypes.STRING,
+    type: DataTypes.INTEGER,
     allowNull: false,
+    references: {
+      model: Subscription,
+      key: 'id',
+    }
   },
   join_date: {
     type: DataTypes.DATE,
@@ -54,6 +59,12 @@ const Member = sequelize.define('Member', {
   },
 }, {
   timestamps: false,
+});
+
+
+Member.belongsTo(Subscription, {
+  foreignKey: 'subscription_id',
+  as: 'subscription',
 });
 
 module.exports = { Member };

@@ -1,10 +1,10 @@
 const { GraphQLObjectType, GraphQLSchema, GraphQLString, GraphQLInt, GraphQLList } = require('graphql');
-const { User } = require('../models/User');
-const userResolver = require('../resolvers/userResolver');
+const { Member } = require('../models/Member');  // Changed from User to Member
+const memberResolver = require('../resolvers/memberResolver');  // Changed from userResolver to memberResolver
 
-// UserType to define the structure of the User object
-const UserType = new GraphQLObjectType({
-  name: 'User',
+// MemberType to define the structure of the Member object
+const MemberType = new GraphQLObjectType({
+  name: 'Member',
   fields: () => ({
     id: { type: GraphQLInt },
     name: { type: GraphQLString },
@@ -21,32 +21,32 @@ const UserType = new GraphQLObjectType({
   }),
 });
 
-// Root query to fetch users or a single user
+// Root query to fetch members or a single member
 const RootQuery = new GraphQLObjectType({
   name: 'RootQueryType',
   fields: {
-    users: {
-      type: new GraphQLList(UserType),
+    members: {
+      type: new GraphQLList(MemberType),
       resolve(parent, args) {
         try {
-          return User.findAll();
+          return Member.findAll();  // Changed from User to Member
         } catch (error) {
-          throw new Error('Error fetching users: ' + error.message);
+          throw new Error('Error fetching members: ' + error.message);
         }
       },
     },
-    user: {
-      type: UserType,
+    member: {
+      type: MemberType,
       args: { id: { type: GraphQLInt } },
       resolve(parent, args) {
         try {
-          const user = User.findByPk(args.id);
-          if (!user) {
-            throw new Error('User not found');
+          const member = Member.findByPk(args.id);  // Changed from User to Member
+          if (!member) {
+            throw new Error('Member not found');
           }
-          return user;
+          return member;
         } catch (error) {
-          throw new Error('Error fetching user: ' + error.message);
+          throw new Error('Error fetching member: ' + error.message);
         }
       },
     },
@@ -57,8 +57,8 @@ const RootQuery = new GraphQLObjectType({
 const Mutation = new GraphQLObjectType({
   name: 'Mutation',
   fields: {
-    addUser: {
-      type: UserType,
+    addMember: {
+      type: MemberType,
       args: {
         name: { type: GraphQLString },
         mobile: { type: GraphQLString },
@@ -74,7 +74,7 @@ const Mutation = new GraphQLObjectType({
       },
       resolve(parent, args) {
         try {
-          return User.create({
+          return Member.create({  // Changed from User to Member
             name: args.name,
             mobile: args.mobile,
             email: args.email,
@@ -88,12 +88,12 @@ const Mutation = new GraphQLObjectType({
             end_date: args.end_date,
           });
         } catch (error) {
-          throw new Error('Error adding user: ' + error.message);
+          throw new Error('Error adding member: ' + error.message);
         }
       },
     },
-    updateUser: {
-      type: UserType,
+    updateMember: {
+      type: MemberType,
       args: {
         id: { type: GraphQLInt },
         name: { type: GraphQLString },
@@ -110,7 +110,7 @@ const Mutation = new GraphQLObjectType({
       },
       async resolve(parent, args) {
         try {
-          const [updated] = await User.update(
+          const [updated] = await Member.update(  // Changed from User to Member
             {
               name: args.name,
               mobile: args.mobile,
@@ -127,28 +127,28 @@ const Mutation = new GraphQLObjectType({
             { where: { id: args.id } }
           );
           if (updated === 0) {
-            throw new Error('User not found or no changes made');
+            throw new Error('Member not found or no changes made');
           }
-          return User.findByPk(args.id); // Return updated user
+          return Member.findByPk(args.id);  // Changed from User to Member
         } catch (error) {
-          throw new Error('Error updating user: ' + error.message);
+          throw new Error('Error updating member: ' + error.message);
         }
       },
     },
-    deleteUser: {
-      type: UserType,
+    deleteMember: {
+      type: MemberType,
       args: {
         id: { type: GraphQLInt },
       },
       async resolve(parent, args) {
         try {
-          const deleted = await User.destroy({ where: { id: args.id } });
+          const deleted = await Member.destroy({ where: { id: args.id } });  // Changed from User to Member
           if (deleted === 0) {
-            throw new Error('User not found');
+            throw new Error('Member not found');
           }
-          return { message: 'User deleted successfully' };
+          return { message: 'Member deleted successfully' };
         } catch (error) {
-          throw new Error('Error deleting user: ' + error.message);
+          throw new Error('Error deleting member: ' + error.message);
         }
       },
     },

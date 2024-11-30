@@ -1,25 +1,18 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import CustomModal from '../common/CustomModal';
 import EditMember from '../core/MemberPage/EditMember';
 import DeleteMember from '../core/MemberPage/DeleteMember';
-import { GET_MEMBERS } from '../../graphql/Members/membersQueries';
-import { useMutation, useQuery } from '@apollo/client';
-import { DELETE_MEMBER } from '../../graphql/Members/membersMutations';
 import Spinner from '../common/Spinner';
 import AddMember from '../core/MemberPage/AddMember';
+import { deleteUser, getUserDetails } from '../../services/operations/userApis';
+
 const Member = () => {
-  const { loading, error, data } = useQuery(GET_MEMBERS);
-  const [removeMember] = useMutation(DELETE_MEMBER);
-
-  // Log data, loading, and error to check
-  // console.log("Loading:", loading);
-  // console.log("Error:", error);
-  console.log("Data:", data?.members);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalAction, setModalAction] = useState(""); // Track 'edit' or 'delete'
   const [selectedMember, setSelectedMember] = useState(null); // Track the selected member
+  const [members, setMembers] = useState([]);
+  const [refreshKey, setRefreshKey] = useState(0); // Trigger for fetching data
 
   const handleOpenModal = useCallback((action, member = null) => {
     setModalAction(action);
@@ -31,25 +24,33 @@ const Member = () => {
     setIsModalOpen(false);
   }, []);
 
-  const handleDelete = useCallback((memberId) => {
-    console.log(`Deleting member with id: ${memberId}`);
-    removeMember({
-      variables: { id: memberId },
-      refetchQueries: [{ query: GET_MEMBERS }], // Refetch the GET_MEMBERS query
-      awaitRefetchQueries: true, // Wait for the refetch to complete
-    }).then(() => {
-      console.log("Member deleted successfully");
-      handleCloseModal();
-    })
-    .catch((err) => {
-      console.error("Error deleting member:", err);
-    });
-    
-    handleCloseModal();
-  }, [removeMember, handleCloseModal]);
+  const handleDelete = useCallback(async (user_id) => {
+    console.log(`Deleting member with id: ${user_id}`);
 
-  if (loading) return <Spinner/>;
-  if (error) return <div>Error loading members</div>;
+    try {
+      await deleteUser(user_id);
+      setRefreshKey((prev) => prev + 1); // Trigger refetch after deletion
+    } catch (error) {
+      console.error("Error deleting user:", error);
+    }
+    handleCloseModal();
+  }, [handleCloseModal]);
+
+  useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        const resp = await getUserDetails({
+          page: 1,
+          limit: 10,
+        });
+        setMembers(resp?.data || []);
+      } catch (error) {
+        console.error("Error fetching members:", error);
+      }
+    };
+
+    fetchMembers();
+  }, [refreshKey]); // Refetch data when refreshKey changes
 
   return (
     <div className="content">
@@ -69,46 +70,59 @@ const Member = () => {
             <tr className="text-center">
               <th className="col">No</th>
               <th className="col-4">Name</th>
-              <th className="col-3">Address</th>
               <th className="col-3">Phone</th>
+              <th className="col-3">Status</th>
               <th className="col">Action</th>
             </tr>
           </thead>
           <tbody className="table-group-divider">
-            {
-              data?.members.map((mb, i) => (
-                <tr className="text-center" key={mb.id}>
-                  <th className="text-center">{i + 1}</th>
-                  <td>{mb.name}</td>
-                  <td>{mb.address}</td>
-                  <td>{mb.mobile}</td>
-                  <td className="text-center d-flex gap-2">
-                    <button type="button" className="btnPrimary" onClick={() => handleOpenModal('edit', mb)}>Edit</button>
-                    <button type="button" className="btnSecondary" onClick={() => handleOpenModal('delete', mb)}>Delete</button>
-                  </td>
-                </tr>
-              ))
-            }
+            {members.map((mb, i) => (
+              <tr className="text-center" key={mb.user_id}>
+                <th className="text-center">{i + 1}</th>
+                <td>{`${mb.first_name} ${mb.last_name || ""}`}</td>
+                <td>{mb.phone_number}</td>
+                <td className={`${mb.status === "active" ? "text-green-500": "text-red-500"} capitalize`}>
+                  {mb.status}
+                </td>
+                <td className="text-center d-flex gap-2">
+                  <button
+                    type="button"
+                    className="btnPrimary"
+                    onClick={() => handleOpenModal('edit', mb)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="btnSecondary"
+                    onClick={() => handleOpenModal('delete', mb)}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
 
       {isModalOpen && (
         <CustomModal open={isModalOpen} onClose={handleCloseModal}>
-          {
-            modalAction === 'add' ? (
-              <AddMember />
-            ) :
-            modalAction === 'edit' ? (
-              <EditMember member={selectedMember} onClose={handleCloseModal} />
-            ) : (
-              <DeleteMember member={selectedMember} onClose={handleCloseModal} onDelete={handleDelete} />
-            )
-          }
+          {modalAction === 'add' ? (
+            <AddMember />
+          ) : modalAction === 'edit' ? (
+            <EditMember member={selectedMember} onClose={handleCloseModal} />
+          ) : (
+            <DeleteMember
+              member={selectedMember}
+              onClose={handleCloseModal}
+              onDelete={handleDelete}
+            />
+          )}
         </CustomModal>
       )}
     </div>
-  )
-}
+  );
+};
 
 export default React.memo(Member);

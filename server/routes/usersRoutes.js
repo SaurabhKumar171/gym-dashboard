@@ -8,7 +8,7 @@ const { addUser, getUser, deleteUser, updateUser, deleteUserForcefully } = requi
 // ********************************************************************************************************
 
 // Post User in DataBase
-router.post("/adduser", addUser);
+router.post("/addUser", addUser);
 router.post("/getUser", getUser);
 router.post("/deleteUser", deleteUser);
 router.post("/updateUser", updateUser);

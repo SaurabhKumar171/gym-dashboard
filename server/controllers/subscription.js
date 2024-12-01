@@ -1,6 +1,3 @@
-
-
-
 // Function to add a subscription
 exports.addSubscription1 = async (req, res) => {
 
@@ -260,7 +257,7 @@ exports.addSubscription = async (req, res) => {
     // fetchDurationAndAmount(plan_id);
 
     const query = `
-      INSERT INTO subscriptions (first_name, last_name, email, phone_number, address, status, password, profile_image_base64, role)
+      INSERT INTO subscriptions (first_name, last_name, email, phone_number, address, status, password, profile_image_url, role)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const values = [
@@ -271,7 +268,7 @@ exports.addSubscription = async (req, res) => {
       address || null,
       status || "active",
       hashedPassword,
-      profile_image_base64 || null,
+      profile_image_url || null,
       role || "member"
     ];
 
@@ -389,7 +386,7 @@ exports.updateUser = async (req, res) => {
   try {
     const {
       user_id, first_name, last_name, email, phone_number, address, status,
-      profile_image_base64, role
+      profile_image_url, role
     } = req.body;
 
     if (!user_id) {
@@ -405,7 +402,7 @@ exports.updateUser = async (req, res) => {
     if (phone_number) updates.push("phone_number = ?"), values.push(phone_number);
     if (address) updates.push("address = ?"), values.push(address);
     if (status) updates.push("status = ?"), values.push(status);
-    if (profile_image_base64) updates.push("profile_image_base64 = ?"), values.push(profile_image_base64);
+    if (profile_image_url) updates.push("profile_image_url = ?"), values.push(profile_image_url);
     if (role) updates.push("role = ?"), values.push(role);
 
     if (updates.length === 0) {

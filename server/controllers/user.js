@@ -3,25 +3,58 @@ const mysql = require("mysql2");
 const bcrypt = require("bcrypt");
 const client = require("../connection");
 const { pagination } = require("../utils");
+const fs = require("fs");
 
 // Function to add a user
 exports.addUser = async (req, res) => {
-  // console.log('Request in controller:', req);
-
   try {
     const {
-      first_name, last_name, email, phone_number, address, status, password,
-      profile_image_base64, role
+      first_name,
+      last_name,
+      email,
+      phone_number,
+      address,
+      status,
+      password,
+      profile_image_url, // URL or file path
+      role,
     } = req.body;
 
-    if (!first_name || !email || !phone_number || !password) {
+    // Validate required fields
+    if (!first_name || !email || !phone_number || !role) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // For admin role, ensure password is provided
+    if (role === "admin" && !password) {
+      return res.status(400).json({ message: "Password is required for admin role" });
+    }
 
+    // Hash the password if provided
+    let hashedPassword = "";
+    if (password) {
+      hashedPassword = await bcrypt.hash(password, 10);
+    }
+
+    // Convert image to base64 if provided
+    let base64Image = null;
+    if (profile_image_url) {
+      try {
+        const imageBuffer = fs.readFileSync(profile_image_url); // Assuming profile_image_url is a file path
+        base64Image = imageBuffer.toString("base64");
+      } catch (error) {
+        console.error("Image processing error:", error);
+        return res.status(400).json({ message: "Invalid image URL or path" });
+      }
+    }
+
+    console.log("base64Image - ", base64Image);
+    
+
+    // Prepare SQL query and values
     const query = `
-      INSERT INTO users (first_name, last_name, email, phone_number, address, status, password, profile_image_base64, role)
+      INSERT INTO users 
+      (first_name, last_name, email, phone_number, address, status, password, profile_image_url, role)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const values = [
@@ -32,29 +65,32 @@ exports.addUser = async (req, res) => {
       address || null,
       status || "active",
       hashedPassword,
-      profile_image_base64 || null,
-      role || "member"
+      base64Image || null, // Store base64 string
+      role || "member",
     ];
 
+    // Execute the query
     client.query(query, values, (err, result) => {
       if (err) {
-        console.error(err);
+        console.error("Database error:", err);
         return res.status(500).json({
           success: false,
-          message: err?.message,
+          message: err?.message || "Failed to create user",
         });
       }
+
+      // Respond with success
       return res.status(201).json({
+        success: true,
         message: "User created successfully",
         userId: result.insertId,
-        success: true,
       });
     });
   } catch (error) {
-    console.error(error);
+    console.error("Server error:", error);
     return res.status(500).json({
-      message: error?.message,
       success: false,
+      message: error?.message || "Internal server error",
     });
   }
 };
@@ -110,7 +146,7 @@ exports.updateUser = async (req, res) => {
   try {
     const {
       user_id, first_name, last_name, email, phone_number, address, status,
-      profile_image_base64, role
+      profile_image_url, role
     } = req.body;
 
     if (!user_id) {
@@ -126,7 +162,7 @@ exports.updateUser = async (req, res) => {
     if (phone_number) updates.push("phone_number = ?"), values.push(phone_number);
     if (address) updates.push("address = ?"), values.push(address);
     if (status) updates.push("status = ?"), values.push(status);
-    if (profile_image_base64) updates.push("profile_image_base64 = ?"), values.push(profile_image_base64);
+    if (profile_image_url) updates.push("profile_image_url = ?"), values.push(profile_image_url);
     if (role) updates.push("role = ?"), values.push(role);
 
     if (updates.length === 0) {

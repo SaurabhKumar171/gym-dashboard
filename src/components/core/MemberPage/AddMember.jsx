@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { addUser } from '../../../services/operations/userApis';
 
 const AddMember = ({ onClose }) => {
   const [formData, setFormData] = useState({
@@ -41,7 +42,9 @@ const AddMember = ({ onClose }) => {
       image, // Include image URL in the submitted data
     };
 
-    console.log('Form Submitted:', memberData);
+    const resp = addUser(memberData);
+
+    // console.log('Form Submitted:', resp);
     // Add your form submission logic here
   };
 
@@ -89,7 +92,6 @@ const AddMember = ({ onClose }) => {
             value={formData.last_name}
             onChange={handleInputChange}
             className="mt-1 block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-dark1"
-            required
           />
         </div>
         {/* Email */}
@@ -113,6 +115,8 @@ const AddMember = ({ onClose }) => {
             value={formData.phone_number}
             onChange={handleInputChange}
             className="mt-1 block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-dark1"
+            min={10}
+            max={10}
             required
           />
         </div>

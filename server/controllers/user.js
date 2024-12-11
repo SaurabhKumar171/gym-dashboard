@@ -4,6 +4,26 @@ const bcrypt = require("bcrypt");
 const client = require("../connection");
 const { pagination } = require("../utils");
 const fs = require("fs");
+const multer = require("multer");
+const path = require("path");
+
+// Configure Multer storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, "../uploads/");
+    cb(null, uploadDir); // Directory to save images
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + "-" + file.originalname); // Unique file name
+  },
+});
+
+// Initialize Multer
+const upload = multer({ storage });
+
+// Middleware for image upload
+exports.uploadImage = upload.single("profile_image_url");
 
 // Function to add a user
 exports.addUser = async (req, res) => {
@@ -16,7 +36,6 @@ exports.addUser = async (req, res) => {
       address,
       status,
       password,
-      profile_image_url, // URL or file path
       role,
     } = req.body;
 
@@ -36,20 +55,11 @@ exports.addUser = async (req, res) => {
       hashedPassword = await bcrypt.hash(password, 10);
     }
 
-    // Convert image to base64 if provided
-    let base64Image = null;
-    if (profile_image_url) {
-      try {
-        const imageBuffer = fs.readFileSync(profile_image_url); // Assuming profile_image_url is a file path
-        base64Image = imageBuffer.toString("base64");
-      } catch (error) {
-        console.error("Image processing error:", error);
-        return res.status(400).json({ message: "Invalid image URL or path" });
-      }
+    // Handle image upload
+    let profileImageUrl = null;
+    if (req.file) {
+      profileImageUrl = `/uploads/${req.file.filename}`; // Relative path to the uploaded image
     }
-
-    console.log("base64Image - ", base64Image);
-    
 
     // Prepare SQL query and values
     const query = `
@@ -65,7 +75,7 @@ exports.addUser = async (req, res) => {
       address || null,
       status || "active",
       hashedPassword,
-      base64Image || null, // Store base64 string
+      profileImageUrl || null, // Store image URL
       role || "member",
     ];
 
@@ -84,6 +94,7 @@ exports.addUser = async (req, res) => {
         success: true,
         message: "User created successfully",
         userId: result.insertId,
+        profileImageUrl, // Send back the image URL
       });
     });
   } catch (error) {
@@ -156,19 +167,29 @@ exports.updateUser = async (req, res) => {
     const updates = [];
     const values = [];
 
+    // Handle profile image URL upload
+    let newProfileImageUrl = profile_image_url; // Default value if no new image is uploaded
+    if (req.file) {
+      // If a new image is uploaded, update the profile_image_url
+      newProfileImageUrl = `/uploads/${req.file.filename}`; // Save the new image URL
+      updates.push("profile_image_url = ?");
+      values.push(newProfileImageUrl);
+    }
+
+    // Handle other fields for update
     if (first_name) updates.push("first_name = ?"), values.push(first_name);
     if (last_name) updates.push("last_name = ?"), values.push(last_name);
     if (email) updates.push("email = ?"), values.push(email);
     if (phone_number) updates.push("phone_number = ?"), values.push(phone_number);
     if (address) updates.push("address = ?"), values.push(address);
     if (status) updates.push("status = ?"), values.push(status);
-    if (profile_image_url) updates.push("profile_image_url = ?"), values.push(profile_image_url);
     if (role) updates.push("role = ?"), values.push(role);
 
     if (updates.length === 0) {
       return res.status(400).json({ message: "No fields to update" });
     }
 
+    // SQL query to update user
     const query = `
       UPDATE users 
       SET ${updates.join(", ")} 
@@ -188,6 +209,7 @@ exports.updateUser = async (req, res) => {
         message: "User updated successfully",
         data: result,
         success: true,
+        profileImageUrl: newProfileImageUrl, // Return the updated image URL
       });
     });
   } catch (error) {

@@ -109,7 +109,9 @@ const Member = () => {
       {isModalOpen && (
         <CustomModal open={isModalOpen} onClose={handleCloseModal}>
           {modalAction === 'add' ? (
-            <AddMember />
+            <AddMember 
+              onClose={handleCloseModal} 
+            />
           ) : modalAction === 'edit' ? (
             <EditMember 
               member={selectedMember} 

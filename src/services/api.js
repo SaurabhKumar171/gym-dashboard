@@ -5,4 +5,5 @@ export const userEndpoints = {
     GET_USER_DETAILS_API: BASE_URL + "users/getUser",
     ADD_USER_DETAILS_API: BASE_URL + "users/addUser",
     DELETE_USER_DETAILS_API: BASE_URL + "users/deleteUser",
+    EDIT_USER_DETAILS_API: BASE_URL + "users/updateUser",
 }

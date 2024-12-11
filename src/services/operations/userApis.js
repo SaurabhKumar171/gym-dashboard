@@ -6,6 +6,7 @@ const {
     GET_USER_DETAILS_API,
     ADD_USER_DETAILS_API,
     DELETE_USER_DETAILS_API,
+    EDIT_USER_DETAILS_API
 } = userEndpoints;
 
 /**
@@ -53,6 +54,17 @@ export const deleteUser = async (user_id) => {
         return response?.data;
     } catch (error) {
         console.error("Error deleting user:", error);
+        throw error; // Rethrow error to handle it at the call site
+    }
+};
+
+
+export const editUser = async (bodyData) => {
+    try {
+        const response = await apiConnector("POST", EDIT_USER_DETAILS_API, bodyData);
+        return response?.data;
+    } catch (error) {
+        console.error("Error editing user:", error);
         throw error; // Rethrow error to handle it at the call site
     }
 };

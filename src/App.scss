@@ -479,7 +479,7 @@ body{
   background: #171A1F !important;
   border: 1px solid var(--greyColor);
   border-radius: 2%;
-  height: 40em;
+  max-height: 40em;
   overflow-y: scroll;
 }
 

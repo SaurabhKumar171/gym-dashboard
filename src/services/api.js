@@ -7,3 +7,7 @@ export const userEndpoints = {
     DELETE_USER_DETAILS_API: BASE_URL + "users/deleteUser",
     EDIT_USER_DETAILS_API: BASE_URL + "users/updateUser",
 }
+
+export const planEndpoints = {
+    GET_PLAN_DETAILS_API: BASE_URL + "plans/getPlan",
+}

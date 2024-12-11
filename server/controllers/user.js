@@ -37,10 +37,14 @@ exports.addUser = async (req, res) => {
       status,
       password,
       role,
+      plan_id, // New plan_id field
+      subscription_from, // Subscription start date
+      subscription_to, // Subscription end date
+      amount, // Subscription amount
     } = req.body;
 
     // Validate required fields
-    if (!first_name || !email || !phone_number || !role) {
+    if (!first_name || !email || !phone_number || !role || !plan_id || !subscription_from || !subscription_to || !amount) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -61,13 +65,13 @@ exports.addUser = async (req, res) => {
       profileImageUrl = `/uploads/${req.file.filename}`; // Relative path to the uploaded image
     }
 
-    // Prepare SQL query and values
-    const query = `
+    // Prepare SQL query and values for inserting into `users` table
+    const userQuery = `
       INSERT INTO users 
       (first_name, last_name, email, phone_number, address, status, password, profile_image_url, role)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    const values = [
+    const userValues = [
       first_name,
       last_name || null,
       email,
@@ -79,8 +83,8 @@ exports.addUser = async (req, res) => {
       role || "member",
     ];
 
-    // Execute the query
-    client.query(query, values, (err, result) => {
+    // Execute the query to insert the user
+    client.query(userQuery, userValues, (err, result) => {
       if (err) {
         console.error("Database error:", err);
         return res.status(500).json({
@@ -89,12 +93,70 @@ exports.addUser = async (req, res) => {
         });
       }
 
-      // Respond with success
-      return res.status(201).json({
-        success: true,
-        message: "User created successfully",
-        userId: result.insertId,
-        profileImageUrl, // Send back the image URL
+      // Get the new user's ID (insertId)
+      const userId = result.insertId;
+
+      // Insert subscription data into `subscription` table
+      const subscriptionQuery = `
+        INSERT INTO subscriptions 
+        (user_id, plan_id, subscription_from, subscription_to, amount, is_expired, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+      `;
+      const subscriptionValues = [
+        userId,
+        plan_id,
+        subscription_from,
+        subscription_to,
+        amount,
+        0, // Assuming the subscription is active, is_expired is 0
+        "active", // Assuming the subscription is active
+      ];
+
+      // Insert the subscription
+      client.query(subscriptionQuery, subscriptionValues, (err, result) => {
+        if (err) {
+          console.error("Database error:", err);
+          return res.status(500).json({
+            success: false,
+            message: err?.message || "Failed to add subscription",
+          });
+        }
+
+        // Insert subscription log into `subscription_logs` table
+        const subscriptionLogQuery = `
+          INSERT INTO subscription_logs 
+          (subscription_id, user_id, plan_id, subscription_from, subscription_to, amount, is_expired, status, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        `;
+        const subscriptionLogValues = [
+          result.insertId, // Subscription ID from the previous insert
+          userId,
+          plan_id,
+          subscription_from,
+          subscription_to,
+          amount,
+          0, // Assuming the subscription is active, is_expired is 0
+          "active", // Assuming the subscription is active
+        ];
+
+        // Insert the subscription log
+        client.query(subscriptionLogQuery, subscriptionLogValues, (err) => {
+          if (err) {
+            console.error("Database error:", err);
+            return res.status(500).json({
+              success: false,
+              message: err?.message || "Failed to add subscription log",
+            });
+          }
+
+          // Respond with success
+          return res.status(201).json({
+            success: true,
+            message: "User and subscription created successfully",
+            userId: userId,
+            profileImageUrl, // Send back the image URL
+          });
+        });
       });
     });
   } catch (error) {

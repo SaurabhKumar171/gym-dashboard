@@ -37,7 +37,7 @@ exports.addUser = async (req, res) => {
       status,
       password,
       role,
-      plan_id, // New plan_id field
+      plan_id, // new plan_id field
       subscription_from, // Subscription start date
       subscription_to, // Subscription end date
       amount, // Subscription amount

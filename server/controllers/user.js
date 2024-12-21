@@ -6,6 +6,7 @@ const { pagination } = require("../utils");
 const fs = require("fs");
 const multer = require("multer");
 const path = require("path");
+const xlsx = require("xlsx");
 
 // Configure Multer storage
 const storage = multer.diskStorage({
@@ -21,6 +22,9 @@ const storage = multer.diskStorage({
 
 // Initialize Multer
 const upload = multer({ storage });
+
+exports.uploadExcel = upload.single("excel_file"); // Upload an Excel file
+
 
 // Middleware for image upload
 exports.uploadImage = upload.single("profile_image_url");
@@ -350,5 +354,187 @@ exports.deleteUserForcefully = async (req, res) => {
       message: error?.message,
       success: false,
     });
+  }
+};
+
+// Function to add users from the uploaded Excel file
+exports.addUsersFromExcel = async (req, res) => {
+  try {
+    // Ensure a file is uploaded
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    // Read and parse the Excel file
+    const filePath = path.join(__dirname, "../uploads", req.file.filename);
+    const workbook = xlsx.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const data = xlsx.utils.sheet_to_json(sheet);
+
+    // Process each user from the Excel file
+    for (let row of data) {
+      const {
+        first_name,
+        last_name,
+        email,
+        phone_number,
+        address,
+        status,
+        password,
+        role,
+        plan_id,
+        subscription_from,
+        subscription_to,
+        amount,
+      } = row;
+
+      // Validate required fields
+      if (!first_name || !email || !phone_number || !role || !plan_id || !subscription_from || !subscription_to || !amount) {
+        continue; // Skip invalid row
+      }
+
+      // For admin role, ensure password is provided
+      let hashedPassword = "";
+      if (role === "admin" && !password) {
+        continue; // Skip invalid row if password is missing for admin
+      }
+
+      if (password) {
+        hashedPassword = await bcrypt.hash(password, 10);
+      }
+
+      // Prepare SQL query and values for inserting into `users` table
+      const userQuery = `
+        INSERT INTO users 
+        (first_name, last_name, email, phone_number, address, status, password, profile_image_url, role)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      const userValues = [
+        first_name,
+        last_name || null,
+        email,
+        phone_number,
+        address || null,
+        status || "active",
+        hashedPassword,
+        null, // Assuming no image URL in the Excel file
+        role || "member",
+      ];
+
+      // Execute the query to insert the user
+      client.query(userQuery, userValues, (err, result) => {
+        if (err) {
+          console.error("Database error:", err);
+          return;
+        }
+
+        const userId = result.insertId;
+
+        // Insert subscription data into `subscriptions` table
+        const subscriptionQuery = `
+          INSERT INTO subscriptions 
+          (user_id, plan_id, subscription_from, subscription_to, amount, is_expired, status, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        `;
+        const subscriptionValues = [
+          userId,
+          plan_id,
+          subscription_from,
+          subscription_to,
+          amount,
+          0, // Assuming the subscription is active, is_expired is 0
+          "active", // Assuming the subscription is active
+        ];
+
+        // Insert the subscription
+        client.query(subscriptionQuery, subscriptionValues, (err) => {
+          if (err) {
+            console.error("Database error:", err);
+            return;
+          }
+        });
+      });
+    }
+
+    // Respond with success
+    return res.status(201).json({
+      success: true,
+      message: "Users added successfully",
+    });
+  } catch (error) {
+    console.error("Server error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error?.message || "Internal server error",
+    });
+  }
+};
+
+// Function to generate the sample Excel file
+exports.downloadSampleExcel = (req, res) => {
+  try {
+    // Define the sample data (column headers)
+    const sampleData = [
+      {
+        first_name: "John",
+        last_name: "Doe",
+        email: "john.doe@example.com",
+        phone_number: "+1234567890",
+        address: "123 Main St, City",
+        status: "active",
+        password: "password123",
+        role: "member",
+        plan_id: 1,
+        subscription_from: "2024-01-01",
+        subscription_to: "2024-12-31",
+        amount: 100,
+      },
+      {
+        first_name: "Jane",
+        last_name: "Smith",
+        email: "jane.smith@example.com",
+        phone_number: "+0987654321",
+        address: "456 Oak Rd, Town",
+        status: "active",
+        password: "password123",
+        role: "admin",
+        plan_id: 2,
+        subscription_from: "2024-02-01",
+        subscription_to: "2024-12-31",
+        amount: 200,
+      },
+    ];
+
+    // Convert the sample data to a worksheet
+    const ws = xlsx.utils.json_to_sheet(sampleData);
+
+    // Create a new workbook
+    const wb = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(wb, ws, "Users");
+
+    // Define the file path to save the sample Excel file
+    const filePath = path.join(__dirname, "../uploads/sample_users.xlsx");
+
+    // Write the workbook to a file
+    xlsx.writeFile(wb, filePath);
+
+    // Send the sample file to the user
+    res.download(filePath, "sample_users.xlsx", (err) => {
+      if (err) {
+        console.error("Error downloading the file:", err);
+        return res.status(500).json({ message: "Error downloading the file" });
+      }
+
+      // Optional: Delete the sample file after download (for cleanup)
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error("Error deleting the file:", err);
+        }
+      });
+    });
+  } catch (error) {
+    console.error("Error generating the sample file:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };

@@ -25,7 +25,7 @@ const Dashboard = () => {
 
   return (
     <div className="content">
-      <span className="title">Dashboard testst</span>
+      <span className="title">Dashboard</span>
       <div className="row mt-3">
         <div className="col-12 col-lg-7 ">
           <div id="overview" className="card mb-4">
